@@ -21,7 +21,7 @@ namespace ColoredEdges
     {
         public const String PluginGuid = "polytech.colorededges";
         public const String PluginName = "Colored Bridge Pieces";
-        public const String PluginVersion = "1.5.0";
+        public const String PluginVersion = "1.5.1";
 
         private static BepInEx.Logging.ManualLogSource staticLogger;
 
@@ -382,7 +382,6 @@ namespace ColoredEdges
                 {
                     if (edge)
                     {
-                        bridgeEdgeProxyList.Add(new BridgeEdgeProxy(edge));
 
                         Color c = edge.m_MeshRenderer.material.color;
                         if (edge.m_OriginalColors != null) { c = cycleRGB; }
@@ -394,8 +393,12 @@ namespace ColoredEdges
                             }
                         }
 
-
-                        bridgeEdgeColorList.Add(c);
+                        //If both sleeve and piston should be coloured, but they are different, they are uncolored -> don't add to proxy list
+                        if (! (ColorHydraulicSleeve.Value && ColorHydraulicPistons.Value && (edge.m_MeshRenderer.material.color != c)))
+                        {
+                            bridgeEdgeProxyList.Add(new BridgeEdgeProxy(edge));
+                            bridgeEdgeColorList.Add(c);
+                        }
                     }
                 }
             }
@@ -407,7 +410,7 @@ namespace ColoredEdges
             [HarmonyPrefix]
             static void Prefix()
             {
-                edgesLeftToCreateAfterThemeChange = BridgeEdges.m_Edges.Count;
+                edgesLeftToCreateAfterThemeChange = bridgeEdgeProxyList.Count;
                 //staticLogger.LogMessage("edgesLeftToCreateAfterThemeChange set to " + edgesLeftToCreateAfterThemeChange);
             }
         }
@@ -420,8 +423,19 @@ namespace ColoredEdges
             {
                 Color c = sourceEdge.m_MeshRenderer.material.color;
                 if (sourceEdge.m_OriginalColors != null) { c = cycleRGB; }
+                if (sourceEdge.m_Material.m_MaterialType == BridgeMaterialType.HYDRAULICS)
+                {
+                    if (ColorHydraulicSleeve.Value)
+                    {
+                        c = sourceEdge.m_HydraulicEdgeVisualization.GetComponentsInChildren<MeshRenderer>()[0].material.color;
+                    }
+                }
 
-                SetMaterialColor(newEdge, c); //Set copy paste material color if no color key is held down
+                //If both sleeve and piston should be coloured, but they are different in the source, the source is uncolored -> don't color the pasted one
+                if (! (ColorHydraulicSleeve.Value && ColorHydraulicPistons.Value && (sourceEdge.m_MeshRenderer.material.color != c)))
+                {
+                    SetMaterialColor(newEdge, c); //Set copy paste material color if no color key is held down
+                }
             }
         }
 
