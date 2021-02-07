@@ -296,18 +296,21 @@ namespace ColoredEdges
             }
         }
 
+        static private BridgeEdge newEdge;
         [HarmonyPatch(typeof(BridgeEdgeListener), "CreateDebris")]
         static class Patch_BridgeEdgeListener_CreateDebris 
         {
-            [HarmonyPrefix]
-            static void Prefix(ref EdgeHandle e, ref BridgeEdge brokenEdge)
+            [HarmonyPostfix]
+            static void Postfix(ref EdgeHandle e, ref BridgeEdge brokenEdge)
             {
-                //Set the color of the debris edge
-                nextDebrisGamerColor = null;
-                nextDebrisColor = brokenEdge.m_MeshRenderer.material.color;
+                newEdge.m_MeshRenderer.material.color = brokenEdge.m_MeshRenderer.material.color;
                 if (brokenEdge.m_OriginalColors != null) 
                 {
-                    nextDebrisGamerColor = brokenEdge.m_OriginalColors;
+                    newEdge.m_OriginalColors = brokenEdge.m_OriginalColors;
+                }
+                if (brokenEdge.m_HydraulicEdgeVisualization != null)
+                {
+                    newEdge.m_HydraulicEdgeVisualization.SetColor(brokenEdge.m_HydraulicEdgeVisualization.GetComponentsInChildren<MeshRenderer>()[0].material.color);
                 }
             }
         }
@@ -318,12 +321,7 @@ namespace ColoredEdges
             [HarmonyPostfix]
             static void Postfix(ref BridgeEdge __result)
             {
-                //Get the color for the next debris edge
-                __result.m_MeshRenderer.material.color = nextDebrisColor;
-                if (nextDebrisGamerColor != null)
-                {
-                    __result.m_OriginalColors = nextDebrisGamerColor;
-                }
+                newEdge = __result;
             }
         }
 
